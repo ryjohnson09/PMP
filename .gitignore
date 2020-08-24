@@ -1,0 +1,11 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.DS_Store
+data/*
+docs/*
+results/*
+ASV_Filtering_Shiny/rsconnect
+ASV_Filtering_Shiny/ps2_tibble.csv
+ASV_Filtering_Shiny/ps2.rds
