@@ -15,7 +15,7 @@ ps2_tibble <- psmelt(ps2)
 
 # Select neg-ctrl data ----------------------------------
 bad_data <- ps2_tibble %>% 
-  filter(Gender == "Neg-Ctrl") %>% 
+  filter(Group == "Neg-Ctrl") %>% 
   filter(Abundance > 0) %>% 
   pull(OTU)
 
@@ -52,7 +52,7 @@ ps2_good_relabun <- ps2_good %>%
 getPalette <- colorRampPalette(brewer.pal(12, "Paired"))
 
 phylum_abun_plot <- ps2_good_relabun %>% 
-  group_by(Sample, Phylum, Gender) %>% 
+  group_by(Sample, Phylum, Group) %>% 
   summarise(phylum_abun = sum(rel_abun, na.rm = T), 
             phylum_reads = sum(Abundance)) %>% 
   ungroup() %>% 
@@ -60,7 +60,7 @@ phylum_abun_plot <- ps2_good_relabun %>%
   mutate(total_reads = sum(phylum_reads)) %>% 
   ggplot(aes(x = Sample, y = phylum_abun, fill = Phylum)) +
   geom_bar(stat = "identity", color = "black") +
-  facet_wrap(~Gender, scales = "free") +
+  facet_wrap(~Group, scales = "free") +
   scale_fill_manual(values = getPalette(length(unique(ps2_good_relabun$Phylum)))) +
   ylim(0,100) +
   labs(x = "Sample Name",
@@ -99,7 +99,7 @@ top_N_genera <- ps2_good_relabun %>%
 # Top N general
 genus_abun_plot <- ps2_good_relabun %>% 
   filter(Genus %in% top_N_genera$Genus) %>% 
-  group_by(Sample, Genus, Gender) %>% 
+  group_by(Sample, Genus, Group) %>% 
   summarise(genus_abun = sum(rel_abun, na.rm = T), 
             genus_reads = sum(Abundance)) %>% 
   ungroup() %>% 
@@ -107,7 +107,7 @@ genus_abun_plot <- ps2_good_relabun %>%
   mutate(total_reads = sum(genus_reads)) %>% 
   ggplot(aes(x = Sample, y = genus_abun, fill = Genus)) +
   geom_bar(stat = "identity", color = "black") +
-  facet_wrap(~Gender, scales = "free") +
+  facet_wrap(~Group, scales = "free") +
   labs(title = paste0("Top ", top_genera_number, " Genera")) +
   scale_fill_manual(values = getPalette(top_genera_number)) +
   labs(x = "Sample",

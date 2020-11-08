@@ -48,8 +48,7 @@ ui <- fluidPage(
     
     column(9,
            mainPanel(
-             girafeOutput("prev_plot", width = "800px", height = "700px"),
-             girafeOutput("abun_plot", width = "800px", height = "700px"),
+             plotlyOutput("prev_abun_plot", width = "800px", height = "400px"),
              plotOutput("barplot", width = "1000px", height = "800px")
            )
     )

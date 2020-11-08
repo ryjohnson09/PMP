@@ -60,7 +60,7 @@ barplot_phylum_patient <- taxa_abundance_table_phylum %>%
        y = "Relative Abundance",
        title = "Relative Abundance at Phylum Level") +
   ylim(0,100) +
-  facet_wrap(~ Gender, scales = "free_x") +
+  facet_wrap(~ Group, scales = "free_x") +
   scale_fill_manual(values = getPalette(length(unique(taxa_abundance_table_phylum$Phylum)))) +
   theme_bw() +
   theme(
@@ -89,7 +89,7 @@ barplot_genus_patient <- taxa_abundance_table_genus %>%
        y = "Relative Abundance",
        title = paste0("Genus (top ", num_top_genus, ") Relative Abundance")) +
   ylim(0,100) +
-  facet_wrap(~ Gender, scales = "free_x") +
+  facet_wrap(~ Group, scales = "free_x") +
   scale_fill_manual(values = getPalette(num_top_genus)) +
   theme_bw() +
   theme(

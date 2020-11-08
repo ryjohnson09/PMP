@@ -33,49 +33,82 @@ server <- function(input, output) {
           between(`perc_prevalence_Neg-Ctrl`, input$n_prev[1], input$n_prev[2]), "Yes", "No"))          
   })
   
-  # Prevalence Plot
-  output$prev_plot <- renderGirafe({
-    prev_plot1 <- contam_ASVs() %>% 
-      ggplot(aes(x = `perc_prevalence_Neg-Ctrl`, y = perc_prevalence_Good, color = keep, tooltip = Genus)) +
-      #geom_point(alpha = 0.7, size = 2.5) +
-      geom_jitter_interactive(height = 1.5, width = 1.5, size = 2, alpha = 0.7) +
+  # Prev and Abun Plots
+  output$prev_abun_plot <- renderPlotly({
+    
+    # Add labels to data
+    contam_ASVs_labs <- contam_ASVs() %>% 
+      mutate(abun_lab = "Average ASV Abundance / Sample") %>% 
+      mutate(prev_lab = "Percent Prevalence")
+    
+    # Highlight key
+    m <- highlight_key(contam_ASVs_labs, ~OTU)
+    
+    p1 <- ggplot(m, aes(`mean_abundance_Neg-Ctrl`, mean_abundance_Good, fill = keep)) + 
+      geom_point(aes(label = Genus), alpha = 0.7, size = 2) +
       theme_minimal() +
       labs(x = "Negative Controls",
-           y = "Real Samples",
-           title = "Percent Prevalence") +
-      scale_color_manual(values=c("#d73027", "#4575b4"), 
+           y = "Real Samples") +
+      scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
+                         breaks = seq(0, 800, 200), limits = c(0, 800)) +
+      scale_x_continuous(trans=scales::pseudo_log_trans(base = 10),
+                         breaks = seq(0, 800, 200), limits = c(0,800)) +
+      scale_color_manual(values=c("#d73027", "#4575b4"),
                          name="Include or Remove\nContaminant ASV",
                          breaks=c("No", "Yes"),
                          labels=c("Remove", "Include")) +
+      facet_wrap(~abun_lab) +
       theme(
         axis.title = element_text(size = 15),
         plot.title = element_text(size = 18),
-        axis.text = element_text(size = 12)
+        axis.text = element_text(size = 10),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)
       )
-    girafe(code = print(prev_plot1))
+    
+    p2 <- ggplot(m, aes(`perc_prevalence_Neg-Ctrl`, perc_prevalence_Good, fill = keep)) + 
+      geom_jitter(aes(label = Genus), width = 2, height = 2, alpha = 0.7, size = 2) +
+      theme_minimal() +
+      labs(x = "Negative Controls",
+           y = "Real Samples") +
+      scale_color_manual(values=c("#d73027", "#4575b4"),
+                         name="Include or Remove\nContaminant ASV",
+                         breaks=c("No", "Yes"),
+                         labels=c("Remove", "Include")) +
+      facet_wrap(~prev_lab) +
+      theme(
+        axis.title = element_text(size = 15),
+        plot.title = element_text(size = 16),
+        axis.text = element_text(size = 10),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)
+      )
+      
+    subplot(ggplotly(p1, tooltip = "label"), 
+            ggplotly(p2, tooltip = "label")) %>% 
+      hide_legend() %>% 
+      highlight("plotly_click", off = "plotly_doubleclick")
   })
   
   
   # Abundance Plot
   output$abun_plot <- renderGirafe({
-    abund_plot1 <- contam_ASVs() %>% 
+    abund_plot1 <- contam_ASVs() %>%
       ggplot(aes(x = `mean_abundance_Neg-Ctrl`, y = mean_abundance_Good, color = keep, tooltip = Genus)) +
       geom_point_interactive(size = 2, alpha = 0.7) +
       theme_minimal() +
       labs(x = "Negative Controls",
            y = "Real Samples",
            title = "Average ASV Abundance / Sample") +
-      scale_y_continuous(trans=scales::pseudo_log_trans(base = 10), 
+      scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
                          breaks = seq(0, 800, 200), limits = c(0, 800)) +
-      scale_x_continuous(trans=scales::pseudo_log_trans(base = 10), 
+      scale_x_continuous(trans=scales::pseudo_log_trans(base = 10),
                          breaks = seq(0, 800, 200), limits = c(0,800)) +
-      scale_color_manual(values=c("#d73027", "#4575b4"), 
+      scale_color_manual(values=c("#d73027", "#4575b4"),
                          name="Include or Remove\nContaminant ASV",
                          breaks=c("No", "Yes"),
                          labels=c("Remove", "Include")) +
       theme(
         axis.title = element_text(size = 15),
-        plot.title = element_text(size = 18),
+        plot.title = element_text(size = 16),
         axis.text = element_text(size = 12),
         axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)
       )

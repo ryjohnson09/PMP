@@ -1,0 +1,92 @@
+---
+title: "Decontam"
+author: "Ryan Johnson"
+date: "10/31/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries}
+library(tidyverse)
+library(phyloseq); packageVersion("phyloseq")
+library(decontam); packageVersion("decontam")
+```
+
+```{r read_data}
+ps_test <- readRDS(system.file("extdata", "MUClite.rds", package="decontam"))
+ps_pmp <- readRDS("../data/processed/ps2.rds")
+
+head(sample_data(ps_test))
+head(sample_data(ps_pmp))
+```
+
+```{r Sample_Read_counts}
+# Test
+df <- as.data.frame(sample_data(ps_test)) # Put sample_data into a ggplot-friendly data.frame
+df$LibrarySize <- sample_sums(ps_test)
+df <- df[order(df$LibrarySize),]
+df$Index <- seq(nrow(df))
+ggplot(data=df, aes(x=Index, y=LibrarySize, color=Sample_or_Control)) + geom_point()
+
+# PMP
+df_pmp <- as.data.frame(sample_data(ps_pmp))
+df_pmp$LibrarySize <- sample_sums(ps_pmp)
+df_pmp <- df_pmp[order(df_pmp$LibrarySize),]
+df_pmp$Index <- seq(nrow(df_pmp))
+ggplot(data=df_pmp, aes(x=Index, y=LibrarySize, color=True_Sample)) + 
+  geom_point() +
+  scale_y_log10()
+```
+```{r}
+# Test
+sample_data(ps_test)$is.neg <- sample_data(ps_test)$Sample_or_Control == "Control Sample"
+contamdf.prev <- isContaminant(ps_test, method="prevalence", neg="is.neg")
+table(contamdf.prev$contaminant)
+
+ps.pa <- transform_sample_counts(ps_test, function(abund) 1*(abund>0))
+ps.pa.neg <- prune_samples(sample_data(ps.pa)$Sample_or_Control == "Control Sample", ps.pa)
+ps.pa.pos <- prune_samples(sample_data(ps.pa)$Sample_or_Control == "True Sample", ps.pa)
+# Make data.frame of prevalence in positive and negative samples
+df.pa <- data.frame(pa.pos=taxa_sums(ps.pa.pos), pa.neg=taxa_sums(ps.pa.neg),
+                      contaminant=contamdf.prev$contaminant)
+ggplot(data=df.pa, aes(x=pa.neg, y=pa.pos, color=contaminant)) + geom_point() +
+  xlab("Prevalence (Negative Controls)") + ylab("Prevalence (True Samples)")
+
+# PMP
+sample_data(ps_pmp)$is.neg <- sample_data(ps_pmp)$True_Sample != TRUE
+pmp_contamdf.prev <- isContaminant(ps_pmp, method="prevalence", neg="is.neg")
+table(pmp_contamdf.prev$contaminant)
+
+pmp_ps.pa <- transform_sample_counts(ps_pmp, function(abund) 1*(abund>0))
+pmp_ps.pa.neg <- prune_samples(sample_data(pmp_ps.pa)$True_Sample != TRUE, pmp_ps.pa)
+pmp_ps.pa.pos <- prune_samples(sample_data(pmp_ps.pa)$True_Sample == TRUE, pmp_ps.pa)
+
+pmp_df.pa <- data.frame(pa.pos=taxa_sums(pmp_ps.pa.pos), pa.neg=taxa_sums(pmp_ps.pa.neg),
+                      contaminant=pmp_contamdf.prev$contaminant)
+ggplot(data=pmp_df.pa, aes(x=pa.neg, y=pa.pos, color=contaminant)) + 
+  geom_jitter(height = 0, width = 0.2) +
+  xlab("Prevalence (Negative Controls)") + ylab("Prevalence (True Samples)")
+```
+
+# Separate out the mock community with the neg-ctrls
+
+```{r}
+mock_neg <- subset_samples(ps_pmp, Group %in% c("Mock", "Neg-Ctrl"))
+mock_neg_contam <- isContaminant(mock_neg, method="prevalence", neg="is.neg")
+table(mock_neg_contam$contaminant)
+
+mock_neg.pa <- transform_sample_counts(mock_neg, function(abund) 1*(abund>0))
+mock_neg.pa.neg <- prune_samples(sample_data(mock_neg.pa)$True_Sample != TRUE, mock_neg.pa)
+mock_neg.pa.pos <- prune_samples(sample_data(mock_neg.pa)$True_Sample == TRUE, mock_neg.pa)
+
+mock_neg_df <- data.frame(pa.pos=taxa_sums(mock_neg.pa.pos), pa.neg=taxa_sums(mock_neg.pa.neg),
+                      contaminant=mock_neg_contam$contaminant)
+
+ggplot(data=mock_neg_df, aes(x=pa.neg, y=pa.pos, color=contaminant)) + 
+  geom_jitter(height = 0.1, width = 0.2) +
+  xlab("Prevalence (Negative Controls)") + ylab("Prevalence (Mock Samples)")
+```
+

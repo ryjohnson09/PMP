@@ -15,7 +15,7 @@ ps2_tibble <- psmelt(ps2)
 
 # Select neg-ctrl data ----------------------------------
 bad_asvs <- ps2_tibble %>% 
-  filter(Gender == "Neg-Ctrl") %>% 
+  filter(Group == "Neg-Ctrl") %>% 
   filter(Abundance > 0)
 
 # Bad ASVs abundance per sample ----------------------------------
@@ -36,7 +36,7 @@ bad_asvs_abund_sample <- bad_asvs %>%
 
 # Select same ASVs in non-neg-ctrl data -----------------------------
 bad_asvs_good_data <- ps2_tibble %>% 
-  filter(Gender != "Neg-Ctrl") %>% 
+  filter(Group != "Neg-Ctrl") %>% 
   group_by(Sample) %>% 
   mutate(rel_abun_good = (Abundance / sum(Abundance)) * 100) %>% 
   filter(OTU %in% bad_asvs$OTU) %>% 

@@ -49,7 +49,7 @@ ps2_topASV_heatmap <- ps2_relabun_top_ASV %>%
   geom_tile() +
   scale_fill_viridis_c(breaks = my_breaks, labels = my_breaks, 
                        trans = scales::pseudo_log_trans(sigma = 0.001)) +
-  facet_wrap(~ Gender, scales = "free") +
+  facet_wrap(~ Group, scales = "free") +
   theme(
     axis.text.y = element_blank(),
     axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)

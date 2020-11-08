@@ -30,7 +30,7 @@ ps2_relabun <- ps2 %>%
 
 # negctrl ASVs ---------------------------------------------------------------
 neg_ctrl_asv <- ps2_relabun %>% 
-  filter(Gender == "Neg-Ctrl" & Abundance > 0)
+  filter(Group == "Neg-Ctrl" & Abundance > 0)
 
 
 # Filter for top ASVs -----------------------------------------------------
@@ -59,7 +59,7 @@ ps2_negctrlASV_heatmap <- ps2_relabun_negctrl_ASVs %>%
   geom_tile() +
   scale_fill_viridis_c(breaks = my_breaks, labels = my_breaks, 
                        trans = scales::pseudo_log_trans(sigma = 0.001)) +
-  #facet_wrap(~ Gender, scales = "free") +
+  #facet_wrap(~ Group, scales = "free") +
   labs(title = "All ASV present in Neg-Ctrls") +
   theme(
     axis.text.y = element_blank(),

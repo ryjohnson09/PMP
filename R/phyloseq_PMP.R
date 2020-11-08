@@ -17,7 +17,7 @@ tax <- readRDS(here("data", "processed", "tax_PMP.rds"))
 metadata <- read_excel(here("data", "raw", "PMP samples in plate.xlsx")) %>% 
   select(Patient...6, Gender, Diagnosis)
 
-colnames(metadata) <- c("Sample_Name", "Gender", "Diagnosis")
+colnames(metadata) <- c("Sample_Name", "Group", "Diagnosis")
 
 # Fix sample names to match rownames(seqtab)
 metadata_final <- metadata %>% 
@@ -25,17 +25,20 @@ metadata_final <- metadata %>%
   mutate(Sample_Name = str_replace_all(Sample_Name, " ", "-")) %>% 
   mutate(Sample_Name = str_replace_all(Sample_Name, "PMP-CON", "CON")) %>% 
   mutate(Sample_Name = str_replace_all(Sample_Name, "Mock-10\\^", "Mock-E")) %>%
-  mutate(Gender = ifelse(str_detect(Sample_Name, "^Mock"), "Mock", Gender)) %>% 
-  mutate(Gender = ifelse(str_detect(Sample_Name, "^CON"), "Control", Gender)) %>% 
-  mutate(Gender = ifelse(str_detect(Sample_Name, "^OV"), "OV", Gender)) %>% 
+  mutate(Group = ifelse(str_detect(Sample_Name, "^Mock"), "Mock", Group)) %>% 
+  mutate(Group = ifelse(str_detect(Sample_Name, "^CON"), "Control", Group)) %>% 
+  mutate(Group = ifelse(str_detect(Sample_Name, "^OV"), "OV", Group)) %>% 
+  mutate(Group = ifelse(str_detect(Sample_Name, "^USC"), "USC", Group)) %>% 
   full_join(tibble(Sample_Name = rownames(seqtab))) %>% 
   filter(Sample_Name %in% rownames(seqtab)) %>% 
+  mutate(Group = ifelse(str_detect(Sample_Name, "^(Extract|PCR)"), "Neg-Ctrl", Group)) %>% 
+  mutate(True_Sample = ifelse(Group == "Neg-Ctrl", FALSE, TRUE)) %>% 
   column_to_rownames("Sample_Name")
 
 # Convert to data frame
 metadata_final <- data.frame(metadata_final)
 
-# Save metada file
+# Save metadata file
 write_csv(rownames_to_column(metadata_final, "Sample Name"), 
           path = "results/tables/PMP_metadata.csv")
 
