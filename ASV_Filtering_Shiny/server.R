@@ -2,20 +2,21 @@
 server <- function(input, output) {
   
   # Read in data
-  ps2_tibble <- read_csv("ps2_tibble.csv")
+  ps2_rds <- read_rds("ps2.rds")
+  ps2_tibble <- psmelt(ps2_rds)
   
   # Select contaminant ASVs in Neg-Ctrl Samples
   bad_asvs <- ps2_tibble %>% 
-    filter(Gender == "Neg-Ctrl") %>% 
+    filter(Group == "Neg-Ctrl") %>% 
     filter(Abundance > 0)
   
   # Get mean abundance and percent prevalence of contaminant ASVs
   contam_ASVs <- reactive({
     ps2_tibble %>% 
       filter(OTU %in% c(bad_asvs$OTU)) %>% 
-      select(OTU, Gender, Sample, Abundance, Genus) %>% 
-      mutate(Sample_Type = case_when(Gender == "Neg-Ctrl" ~ "Neg-Ctrl",
-                                     Gender != "Neg-Ctrl" | is.na(Gender) ~ "Good")) %>% 
+      select(OTU, Group, Sample, Abundance, Genus) %>% 
+      mutate(Sample_Type = case_when(Group == "Neg-Ctrl" ~ "Neg-Ctrl",
+                                     Group != "Neg-Ctrl" | is.na(Group) ~ "Good")) %>% 
       mutate(Presence = ifelse(Abundance > 0, 1, 0)) %>% 
       group_by(Sample_Type, OTU, Genus) %>%
       summarise(mean_abundance = mean(Abundance), 
@@ -133,7 +134,7 @@ server <- function(input, output) {
       ungroup() %>% 
       # If no Genus taxon, convert to "Other"
       mutate(Genus = ifelse(is.na(Genus), "Other", Genus)) %>% 
-      group_by(Sample, Genus, Gender) %>% 
+      group_by(Sample, Genus, Group) %>% 
       summarise(Genus_rel_abun = sum(ASV_rel_abun)) %>% 
       ungroup()
     
@@ -147,13 +148,13 @@ server <- function(input, output) {
     # Top N genera plot
     genus_abun_plot <- ps2_good_relabun %>% 
       filter(Genus %in% top_N_genera$Genus) %>% 
-      group_by(Sample, Genus, Gender) %>% 
+      group_by(Sample, Genus, Group) %>% 
       summarise(genus_abun = sum(Genus_rel_abun, na.rm = T)) %>%  
       ungroup() %>% 
       group_by(Sample) %>% 
       ggplot(aes(x = Sample, y = genus_abun, fill = Genus)) +
       geom_bar(stat = "identity", color = "black") +
-      facet_wrap(~Gender, scales = "free") +
+      facet_wrap(~Group, scales = "free") +
       labs(title = paste0("Top ", input$N_genera, " Genera")) +
       scale_fill_manual(values = getPalette(input$N_genera)) +
       labs(x = "Sample",
