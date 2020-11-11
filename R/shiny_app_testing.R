@@ -13,8 +13,8 @@ library(decontam)
 prev_scale_Good <- c(0, 100)
 prev_scale_Bad <- c(0, 100)
 
-abun_scale_Good <- c(0, 650)
-abun_scale_Bad <- c(5, 650)
+abun_scale_Good <- c(5, 650)
+abun_scale_Bad <- c(0, 650)
 
 # Read in Data
 ps2 <- readRDS("data/processed/ps2.rds")
@@ -31,7 +31,7 @@ ps2_noMock_contam <- as_tibble(isContaminant(ps2_noMock, method="prevalence", ne
   rename(Contams_negctrl_vs_pmp = contaminant)
 
 # Merge
-ps2_contam1 <- ps2_noMock_tibble %>% 
+ps2_contam_temp <- ps2_noMock_tibble %>% 
   left_join(select(ps2_noMock_contam, OTU, Contams_negctrl_vs_pmp), by = "OTU")
 
 
@@ -47,34 +47,38 @@ ps2_Mock_contam <- as_tibble(isContaminant(ps2_Mock, method="prevalence", neg="i
   rename(Contams_negctrl_vs_mock = contaminant)
 
 # Merge
-ps2_contam2 <- ps2_contam1 %>% 
+ps2_contam <- ps2_contam_temp %>% 
   left_join(select(ps2_Mock_contam, OTU, Contams_negctrl_vs_mock), by = "OTU") %>% 
   # Final contam call
   mutate(contaminant = case_when(
-    Contams_negctrl_vs_mock | Contams_negctrl_vs_pmp ~ "Yes"))
+    Contams_negctrl_vs_mock | Contams_negctrl_vs_pmp ~ "Yes",
+    !Contams_negctrl_vs_mock & !Contams_negctrl_vs_pmp ~ "No"))
+
+# Note: ps2_contam has the mock community removed and indicates if 
+#  and ASV is a contaminant either by comparing neg-ctrl to PMP/control
+#  and comparing mock vs neg-ctrl
 
 
-
-
+# Prev and Abundance filtering ----------------------------------------
 # Select contaminant ASVs in Neg-Ctrl Samples
-bad_asvs <- ps2_noMock %>% 
+bad_asvs <- ps2_contam %>% 
   filter(Group == "Neg-Ctrl") %>% 
   filter(Abundance > 0)
 
 # Get mean abundance and percent prevalence of contaminant ASVs
-contam_ASVs <- ps2_noMock %>% 
+contam_ASVs <- ps2_contam %>% 
   filter(OTU %in% c(bad_asvs$OTU)) %>% 
-  select(OTU, Group, Sample, Abundance, Genus) %>% 
+  select(OTU, Group, Sample, Abundance, Genus, contaminant) %>% 
   mutate(Sample_Type = case_when(Group == "Neg-Ctrl" ~ "Neg-Ctrl",
                                  Group != "Neg-Ctrl" | is.na(Group) ~ "Good")) %>% 
   mutate(Presence = ifelse(Abundance > 0, 1, 0)) %>% 
-  group_by(Sample_Type, OTU, Genus) %>%
+  group_by(Sample_Type, OTU, Genus, contaminant) %>%
   summarise(mean_abundance = mean(Abundance), 
             sum_prevalence = sum(Presence), 
             n = n(),
             perc_prevalence = sum(Presence) / n() * 100) %>% 
   ungroup() %>% 
-  select(Sample_Type, OTU, mean_abundance, perc_prevalence, Genus) %>% 
+  select(Sample_Type, OTU, mean_abundance, perc_prevalence, Genus, contaminant) %>% 
   pivot_wider(names_from = Sample_Type, values_from = c(mean_abundance, perc_prevalence)) %>% 
   mutate(Genus = ifelse(is.na(Genus), "Other", Genus)) %>%
   mutate(keep = ifelse(
@@ -84,7 +88,75 @@ contam_ASVs <- ps2_noMock %>%
     between(`perc_prevalence_Neg-Ctrl`, prev_scale_Bad[1], prev_scale_Bad[2]), "Yes", "No")          
   )
 
+abun_plot <- contam_ASVs %>% 
+  ggplot(aes(x = `mean_abundance_Neg-Ctrl`,
+             y = mean_abundance_Good,
+             fill = keep)) +
+  # Lightly fill contaminants
+  geom_point(data = filter(contam_ASVs, contaminant == "Yes"), 
+             shape = 21, 
+             size = 2, 
+             alpha = 0.2) +
+  # Dark fill non-contaminants
+  geom_point(data = filter(contam_ASVs, contaminant == "No"), 
+             shape = 21, 
+             size = 2, 
+             alpha = 0.7) +
+  theme_minimal() +
+  labs(x = "Negative Controls",
+       y = "Real Samples") +
+  scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
+                     breaks = seq(0, 400, 100), limits = c(0, 400)) +
+  scale_x_continuous(trans=scales::pseudo_log_trans(base = 10),
+                     breaks = seq(0, 400, 100), limits = c(0,400)) +
+  scale_fill_manual(values=c("#d73027", "#4575b4"),
+                     name="Include or Remove\nContaminant ASV",
+                     breaks=c("No", "Yes"),
+                     labels=c("Remove", "Include")) +
+  theme(
+    axis.title = element_text(size = 15),
+    plot.title = element_text(size = 18),
+    axis.text = element_text(size = 10),
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)
+  )
 
+abun_plot
+
+# Set seed to make jitter reproducible
+set.seed(1234)
+prev_plot <- contam_ASVs %>% 
+  ggplot(aes(x = `perc_prevalence_Neg-Ctrl`,
+             y = perc_prevalence_Good,
+             fill = keep)) +
+  # Lightly fill contaminants
+  geom_jitter(data = filter(contam_ASVs, contaminant == "Yes"), 
+              width = 2, height = 0.5,
+              shape = 21,
+              size = 2,
+              alpha = 0.2) +
+  # Dark fill non-contaminants
+  geom_jitter(data = filter(contam_ASVs, contaminant == "No"), 
+              width = 2, height = 0.5,
+              shape = 21,
+              size = 2,
+              alpha = 0.7) +
+  theme_minimal() +
+  labs(x = "Negative Controls",
+       y = "Real Samples") +
+  scale_fill_manual(values=c("#d73027", "#4575b4"),
+                     name="Include or Remove\nContaminant ASV",
+                     breaks=c("No", "Yes"),
+                     labels=c("Remove", "Include")) +
+  theme(
+    axis.title = element_text(size = 15),
+    plot.title = element_text(size = 18),
+    axis.text = element_text(size = 10),
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)
+  )
+
+prev_plot
+
+################ old ##########################
 prev_abun_plot <- 
   
   # Add labels to data
@@ -169,7 +241,7 @@ output$abun_plot <- renderGirafe({
 
 
 
-# Abundance Plots --------------------------------------
+# Abundance Bar Plots --------------------------------------
 getPalette <- colorRampPalette(brewer.pal(12, "Paired"))
 
 # Filter out bad otus from ps2
