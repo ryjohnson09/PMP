@@ -16,7 +16,7 @@ prev_scale_Bad <- c(0, 100)
 abun_scale_Good <- c(5, 650)
 abun_scale_Bad <- c(0, 650)
 
-# Read in Data
+# Read in Data ----------------------------------------
 ps2 <- readRDS("data/processed/ps2.rds")
 
 # Determine Contaminants (neg-ctrl vs PMP/control samples) ----------------------
@@ -156,87 +156,6 @@ prev_plot <- contam_ASVs %>%
 
 prev_plot
 
-################ old ##########################
-prev_abun_plot <- 
-  
-  # Add labels to data
-  contam_ASVs_labs <- contam_ASVs %>% 
-    mutate(abun_lab = "Average ASV Abundance / Sample") %>% 
-    mutate(prev_lab = "Percent Prevalence")
-  
-  # Highlight key
-  m <- highlight_key(contam_ASVs_labs, ~OTU)
-  
-  p1 <- ggplot(m, aes(`mean_abundance_Neg-Ctrl`, mean_abundance_Good, fill = keep)) + 
-    geom_point(aes(label = Genus), alpha = 0.7, size = 2) +
-    theme_minimal() +
-    labs(x = "Negative Controls",
-         y = "Real Samples") +
-    scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
-                       breaks = seq(0, 800, 200), limits = c(0, 800)) +
-    scale_x_continuous(trans=scales::pseudo_log_trans(base = 10),
-                       breaks = seq(0, 800, 200), limits = c(0,800)) +
-    scale_color_manual(values=c("#d73027", "#4575b4"),
-                       name="Include or Remove\nContaminant ASV",
-                       breaks=c("No", "Yes"),
-                       labels=c("Remove", "Include")) +
-    facet_wrap(~abun_lab) +
-    theme(
-      axis.title = element_text(size = 15),
-      plot.title = element_text(size = 18),
-      axis.text = element_text(size = 10),
-      axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)
-    )
-  
-  
-  p2 <- ggplot(m, aes(`perc_prevalence_Neg-Ctrl`, perc_prevalence_Good, fill = keep)) + 
-    geom_jitter(aes(label = Genus), width = 2, height = 0.5, alpha = 0.7, size = 2) +
-    theme_minimal() +
-    labs(x = "Negative Controls",
-         y = "Real Samples") +
-    scale_color_manual(values=c("#d73027", "#4575b4"),
-                       name="Include or Remove\nContaminant ASV",
-                       breaks=c("No", "Yes"),
-                       labels=c("Remove", "Include")) +
-    facet_wrap(~prev_lab) +
-    theme(
-      axis.title = element_text(size = 15),
-      plot.title = element_text(size = 16),
-      axis.text = element_text(size = 10),
-      axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)
-    )
-  
-  subplot(ggplotly(p1, tooltip = "label"), 
-          ggplotly(p2, tooltip = "label"), titleX = TRUE, titleY = TRUE) %>% 
-    hide_legend() %>% 
-    highlight("plotly_click", off = "plotly_doubleclick")
-
-
-# Abundance Plot
-output$abun_plot <- renderGirafe({
-  abund_plot1 <- contam_ASVs() %>%
-    ggplot(aes(x = `mean_abundance_Neg-Ctrl`, y = mean_abundance_Good, color = keep, tooltip = Genus)) +
-    geom_point_interactive(size = 2, alpha = 0.7) +
-    theme_minimal() +
-    labs(x = "Negative Controls",
-         y = "Real Samples",
-         title = "Average ASV Abundance / Sample") +
-    scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
-                       breaks = seq(0, 800, 200), limits = c(0, 800)) +
-    scale_x_continuous(trans=scales::pseudo_log_trans(base = 10),
-                       breaks = seq(0, 800, 200), limits = c(0,800)) +
-    scale_color_manual(values=c("#d73027", "#4575b4"),
-                       name="Include or Remove\nContaminant ASV",
-                       breaks=c("No", "Yes"),
-                       labels=c("Remove", "Include")) +
-    theme(
-      axis.title = element_text(size = 15),
-      plot.title = element_text(size = 16),
-      axis.text = element_text(size = 12),
-      axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)
-    )
-  girafe(code = print(abund_plot1))
-})
 
 
 
@@ -245,9 +164,9 @@ output$abun_plot <- renderGirafe({
 getPalette <- colorRampPalette(brewer.pal(12, "Paired"))
 
 # Filter out bad otus from ps2
-ps2_good_relabun <- ps2_noMock %>% 
+ps2_good_relabun <- psmelt(ps2) %>% 
   # Remove contaminant ASVs
-  filter(!OTU %in% filter(contam_ASVs, keep == "No")$OTU) %>% 
+  filter(!OTU %in% filter(contam_ASVs, keep == "No" & contaminant == "No")$OTU) %>% 
   # Convert to Relative Abundance
   select(-OTU) %>% 
   group_by(Sample) %>% 
@@ -264,7 +183,7 @@ top_N_genera <- ps2_good_relabun %>%
   group_by(Genus) %>% 
   summarise(genera_mean_abun = mean(Genus_rel_abun, na.rm = TRUE)) %>% 
   arrange(desc(genera_mean_abun)) %>% 
-  head(15)
+  head(10)
 
 # Top N genera plot
 genus_abun_plot <- ps2_good_relabun %>% 
@@ -279,7 +198,7 @@ genus_abun_plot <- ps2_good_relabun %>%
   geom_bar(stat = "identity", color = "black") +
   facet_wrap(~Group, scales = "free") +
   labs(title = paste0("Top ", 25, " Genera")) +
-  scale_fill_manual(values = getPalette(25)) +
+  scale_fill_manual(values = getPalette(10)) +
   labs(x = "Sample",
        y = "Relative Abundance",
        title = paste0("Genus (top ", 25, ") Relative Abundance")) +

@@ -4,8 +4,11 @@
 # Libraries ---------------------------------------------------------------
 library(shiny)
 library(tidyverse)
+library(phyloseq)
 library(RColorBrewer)
 library(ggiraph)
+library(plotly)
+library(decontam)
 
 
 # UI ----------------------------------------------------------------------
@@ -48,7 +51,8 @@ ui <- fluidPage(
     
     column(9,
            mainPanel(
-             plotlyOutput("prev_abun_plot", width = "800px", height = "400px"),
+             girafeOutput("prev_plot", width = "800px", height = "700px"),
+             girafeOutput("abun_plot", width = "800px", height = "700px"),
              plotOutput("barplot", width = "1000px", height = "800px")
            )
     )
