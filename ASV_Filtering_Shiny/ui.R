@@ -9,6 +9,7 @@ library(RColorBrewer)
 library(ggiraph)
 library(plotly)
 library(decontam)
+library(testthat)
 
 
 # UI ----------------------------------------------------------------------

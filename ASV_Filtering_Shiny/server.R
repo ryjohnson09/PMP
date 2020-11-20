@@ -91,7 +91,9 @@ server <- function(input, output) {
                  alpha = 0.7) +
       theme_minimal() +
       labs(x = "Negative Controls",
-           y = "Real Samples") +
+           y = "Real Samples",
+           title = "Average Read Abundance",
+           subtitle = "Only showing ASVs present in Neg-Ctrl Samples") +
       scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
                          breaks = seq(0, 400, 100), limits = c(0, 400)) +
       scale_x_continuous(trans=scales::pseudo_log_trans(base = 10),
@@ -131,7 +133,9 @@ server <- function(input, output) {
                   alpha = 0.7) +
       theme_minimal() +
       labs(x = "Negative Controls",
-           y = "Real Samples") +
+           y = "Real Samples",
+           title = "Percent Prevalence",
+           subtitle = "Only showing ASVs present in Neg-Ctrl Samples") +
       scale_fill_manual(values=c("#d73027", "#4575b4"),
                         name="Include or Remove\nContaminant ASV",
                         breaks=c("No", "Yes"),
