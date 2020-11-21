@@ -189,10 +189,10 @@ server <- function(input, output) {
       geom_bar(stat = "identity", color = "black") +
       facet_wrap(~Group, scales = "free") +
       labs(title = paste0("Top ", 25, " Genera")) +
-      scale_fill_manual(values = getPalette(10)) +
-      labs(x = "Sample",
+      scale_fill_manual(values = getPalette(input$N_genera)) +
+      labs(x = "",
            y = "Relative Abundance",
-           title = paste0("Genus (top ", input$N_genera, ") Relative Abundance")) +
+           title = paste0("Genus (Top ", input$N_genera, ") Relative Abundance")) +
       ylim(0,100) +
       theme_bw() +
       theme(
