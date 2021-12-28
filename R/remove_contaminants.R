@@ -20,8 +20,8 @@ bad_data <- ps2_tibble %>%
   pull(OTU)
 
 # Filter out bad otus from ps2 -------------------------
-ps2_good <- ps2_tibble #%>% 
-  # filter(!OTU %in% bad_data)
+ps2_good <- ps2_tibble %>% 
+  filter(!OTU %in% bad_data)
 
 # Create table of number of reads per sample after removing contaminants -------
 ps2_before <- ps2_tibble %>% 
